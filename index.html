@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IT Control Center (đám mây)</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#fff7f5;--card:#fff;--ink:#2a1a1d;--mut:#6b5157;--line:#ecd0cc;--side:#ffffff;--thbg:#fdeceb;--zebra:#fffaf9;--hover:#fff0ed;--inbg:#fff6f4;--red:#be123c;--redbg:#be123c1a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#150d10;--card:#21141a;--ink:#fbeaea;--mut:#d3b6bb;--line:#4a2e36;--side:#1b1015;--thbg:#2e1b23;--zebra:#1c1117;--hover:#33202a;--inbg:#2a1a21;--red:#fb7185;--redbg:#fb718526}}
+:root[data-theme="dark"]{--bg:#150d10;--card:#21141a;--ink:#fbeaea;--mut:#d3b6bb;--line:#4a2e36;--side:#1b1015;--thbg:#2e1b23;--zebra:#1c1117;--hover:#33202a;--inbg:#2a1a21;--red:#fb7185;--redbg:#fb718526}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,"Segoe UI",sans-serif}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.grad{background:linear-gradient(135deg,#f97316,#f43f5e 60%,#ec4899)}
+.inp{width:100%;background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink)}
+.inp:focus{outline:2px solid #f43f5e55}
+.btn{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--line);color:var(--ink);background:var(--card)}
+.btn:hover{border-color:#f43f5e}
+.pri{background:linear-gradient(135deg,#f97316,#f43f5e);color:#fff;border:0}
+th{background:var(--thbg);color:var(--mut);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:left;padding:12px 14px;white-space:nowrap}
+td{padding:12px 14px;border-top:1px solid var(--line);font-size:14px;vertical-align:middle}tbody tr:nth-child(even){background:var(--zebra)}tbody tr:hover{background:var(--hover)}td .inp{border-color:transparent;background:var(--inbg);padding:6px 8px}td .inp:hover,td .inp:focus{border-color:#f43f5e}.grid>.card.p-4{border-left:4px solid #f97316}
+.nav{display:flex;gap:10px;align-items:center;width:100%;padding:10px 12px;border-radius:10px;color:var(--mut);font-weight:600;font-size:14px;white-space:nowrap}
+.nav.on{color:#fff;background:linear-gradient(135deg,#f97316,#f43f5e)}
+.bd{padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
+</style></head>
+<body>
+<div class="md:flex min-h-screen">
+ <aside class="md:w-64 md:min-h-screen p-3 md:p-4" style="background:var(--side);border-right:1px solid var(--line)">
+  <div class="flex items-center gap-2 mb-3 md:mb-6 px-1">
+   <div class="grad w-9 h-9 rounded-xl grid place-items-center text-white font-bold">IT</div>
+   <div><div class="font-bold leading-tight">IT Control Center</div><div class="text-xs" style="color:var(--mut)">Quản lý công việc kỹ thuật</div></div>
+  </div>
+  <nav id="nav" class="flex md:block gap-1 overflow-x-auto md:space-y-1"></nav>
+  <div class="hidden md:block"><div id="cloud" class="text-xs mt-4" style="color:var(--mut)"></div><button class="btn mt-2 w-full" onclick="openImport()">⬆ Nhập dữ liệu cũ</button><button class="btn mt-2 w-full" onclick="logout()">Đăng xuất</button></div>
+ </aside>
+ <main class="flex-1 p-4 md:p-8 min-w-0"><div id="main"></div></main>
+</div>
+<div id="modal" class="fixed inset-0 hidden items-center justify-center p-4" style="background:#000a;z-index:50"></div>
+<div id="gate" class="fixed inset-0 grid place-items-center p-4" style="background:var(--bg);z-index:80"><div class="card p-6 w-full" style="max-width:380px">
+<div class="flex items-center gap-2 mb-4"><div class="grad w-9 h-9 rounded-xl grid place-items-center text-white font-bold">IT</div><div class="font-bold">IT Control Center</div></div>
+<label class="block mb-3 text-sm">Email<input id="g_e" type="email" class="inp mt-1" autocomplete="username"></label>
+<label class="block mb-3 text-sm">Mật khẩu đăng nhập<input id="g_p" type="password" class="inp mt-1" autocomplete="current-password"></label>
+<label class="block mb-1 text-sm">Mã khóa dữ liệu mật khẩu camera<input id="g_k" type="password" class="inp mt-1" autocomplete="off"></label>
+<p class="text-xs mb-3" style="color:var(--mut)">Lần đầu: mã bạn nhập sẽ trở thành mã khóa. Mất mã này thì không giải mã lại được mật khẩu camera.</p>
+<div id="g_err" class="text-xs mb-2" style="color:var(--red)"></div>
+<button id="g_btn" class="btn pri w-full" onclick="doLogin()">Đăng nhập</button></div></div>
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 grad text-white px-4 py-2 rounded-full text-sm hidden" style="z-index:60"></div>
+
+<script>
+/* ===== DỮ LIỆU MẪU (JSON) cho cả 5 tab ===== */
+const ACC=[['Điền Công',45],['Điền Công 2',6],['Chế Biến Điền Công',11],['Khe Thần',14],['MB22+56',15],['Bến Cân',23],['Ga A + Cơ Vụ',28],['Lán Tháp',14],['Vàng Danh',6],['Trạm 468 KN ĐC',31],['BTO',26],['Bunke',14],['Kho vật tư ga A',3],['Nhà ăn ĐC',3],['Nhà DHSX',29],['Tuyến băng HĐH',14],...Array.from({length:9},(_,i)=>['Camera đầu máy CK0'+(i+1),3]),['Cam soi thùng',6],['Nhà xe con',10],['Bãi Rác',4]];
+const SEED={
+ cameras:[
+  {id:1,area:'Điền Công',count:45,sn:'',bad:''},
+  {id:2,area:'Điền Công 2',count:27,sn:'',bad:''},
+  {id:3,area:'Chế biến Điền Công',count:11,sn:'',bad:''},
+  {id:4,area:'Khe Thần',count:16,sn:'',bad:''},
+  {id:5,area:'MB22+56',count:15,sn:'',bad:''},
+  {id:6,area:'Bến Cân',count:26,sn:'',bad:''},
+  {id:7,area:'Ga A + Cơ vụ',count:32,sn:'',bad:''},
+  {id:8,area:'Ga Lán Tháp 15 + Vàng Danh 6',count:21,sn:'',bad:''},
+  {id:9,area:'Trạm 468 (KN-ĐC) + BT Khe Ngát (1+2)',count:30,sn:'',bad:''},
+  {id:10,area:'BTO',count:26,sn:'',bad:''},
+  {id:11,area:'Bunke',count:16,sn:'',bad:''},
+  {id:12,area:'Kho vật tư Ga A',count:3,sn:'',bad:''},
+  {id:13,area:'Nhà ăn Cty, ĐC',count:3,sn:'',bad:''},
+  {id:14,area:'Nhà ĐHSX Cty',count:29,sn:'',bad:''},
+  {id:15,area:'Tuyến băng hiện đại hóa',count:16,sn:'',bad:''},
+  {id:16,area:'Camera đầu máy',count:27,sn:'',bad:''},
+  {id:17,area:'Nhà xe con',count:10,sn:'',bad:''},
+  {id:18,area:'Bãi rác',count:4,sn:'',bad:''},
+  
+  {id:19,area:'Hộc Mb22',count:3,sn:'',bad:''}],
+ logs:[
+  {id:1,date:'2026-10-05',cam:'CAM-KNL-02',type:'Sửa chữa',note:'Mất hình, kiểm tra nguồn PoE'},
+  {id:2,date:'2026-09-20',cam:'CAM-CC-01',type:'Thay thế',note:'Thay ống kính, vệ sinh dome'}],
+ parts:[
+  {id:1,name:'Camera IP 2MP',unit:'Cái',spare:3,used:5},
+  {id:2,name:'Ổ cứng 4TB',unit:'Cái',spare:1,used:2},
+  {id:3,name:'Switch PoE 8 port',unit:'Cái',spare:2,used:1}],
+ accounts:[
+  ...ACC.map((a,i)=>({id:i+1,area:a[0],count:a[1],device:'',ip:'',user:'',pass:'',history:[]})),
+  ],
+ fuel:[
+  {id:1,kho:'Điền Công',tru:'Trụ 01',status:'Hoạt động',note:''},
+  {id:2,kho:'Bến Cân',tru:'Trụ 02',status:'Báo trì',note:'Thay bộ đếm lưu lượng'}],
+ fuelParts:[{id:1,name:'Bộ đếm lưu lượng',unit:'Cái',qty:2,used:1}],
+ fuelLogs:[{id:1,date:'2026-10-02',kho:'Bến Cân',type:'Bảo trì',note:'Thay bộ đếm lưu lượng'}],
+ gpsLogs:[{id:1,date:'2026-09-15',device:'GPS-OT-01',type:'Thay thế',note:'Thay SIM GPS'}],
+ gpsParts:[{id:1,name:'SIM GPS',unit:'Cái',qty:10,used:2}],
+ orders:[{id:1,so:'LSX-001/2026',date:'2026-10-01',area:'Bến Cân',type:'Sửa chữa',content:'Sửa chữa camera mất hình',by:''}],
+ tasks:[
+  {id:1,title:'Đi công tác cùng đồng chí Hà - Đảng ủy',due:'2026-10-19T14:00',done:false,note:''},
+  {id:2,title:'Nộp báo cáo vật tư tháng 10',due:'2026-10-17T08:00',done:false,note:'Tổng hợp từ 3 mảng'}],
+ gps:[
+  {id:1,group:'GPS ô tô',device:'GPS-OT-01',sim:'0912345678',status:'Hoạt động'},
+  {id:2,group:'GPS tuần đường',device:'GPS-TD-01',sim:'0988777666',status:'Hoạt động'},
+  {id:3,group:'Tín hiệu đuôi tàu',device:'TH-DT-01',sim:'0977111222',status:'Lỗi'}],
+ stock:[{id:1,name:'Camera IP 2MP',group:'Camera',month:'2026-10',stock:3,incoming:5,used:2}]
+};
+const TABS=[['task','✅','Công việc hàng ngày'],['cam','📹','Camera công ty'],['pwd','🔐','Mật khẩu Camera'],['fuel','⛽','Cấp phát nhiên liệu'],['gps','📡','GPS & Tín hiệu'],['rep','📊','Báo cáo vật tư']];
+/* ===== Cấu hình bảng CRUD: [khóa, nhãn, kiểu, tùy chọn] ===== */
+const ST=['Hoạt động','Lỗi','Bảo trì'];
+const GRP=['GPS ô tô','GPS tuần đường','Tín hiệu đuôi tàu'],GROUPS=['Camera','Nhiên liệu','GPS & Tín hiệu'];
+const CFG={
+ cameras:{t:'Camera theo khu vực',cols:[['area','Khu vực'],['count','Số lượng camera','number'],['sn','Mã SN đầu ghi'],['bad','Camera không hoạt động']]},
+ logs:{t:'Nhật ký sửa chữa / bảo trì',cols:[['date','Ngày','date'],['cam','Khu vực / Camera'],['type','Loại','select',['Sửa chữa','Bảo trì','Thay thế']],['note','Nội dung']]},
+ parts:{t:'Vật tư camera',cols:[['name','Tên vật tư'],['unit','ĐVT'],['spare','Dự phòng','number'],['used','Đã sử dụng','number']]},
+ fuel:{t:'Trụ / Hệ thống',cols:[['kho','Kho / Vị trí'],['tru','Trụ / Thiết bị'],['status','Trạng thái','select',ST],['last','Bảo trì gần nhất','date'],['note','Ghi chú']]},
+ fuelLogs:{t:'Nhật ký bảo trì',cols:[['date','Ngày','date'],['kho','Kho / Trụ'],['type','Loại','select',['Sửa chữa','Bảo trì','Thay thế']],['note','Nội dung']]},
+ fuelParts:{t:'Vật tư, linh kiện',cols:[['name','Tên vật tư'],['unit','ĐVT'],['qty','Tồn kho','number'],['used','Đã sử dụng','number']]},
+ gps:{t:'Thiết bị',cols:[['group','Nhóm','select',GRP],['device','Mã thiết bị'],['target','Phương tiện / Vị trí'],['sim','SIM GPS'],['status','Trạng thái','select',ST]]},
+ gpsLogs:{t:'Lịch sử thay thế / bảo dưỡng',cols:[['date','Ngày','date'],['device','Thiết bị'],['type','Loại','select',['Sửa chữa','Bảo dưỡng','Thay thế']],['note','Nội dung']]},
+ gpsParts:{t:'Vật tư GPS',cols:[['name','Tên vật tư'],['unit','ĐVT'],['qty','Tồn kho','number'],['used','Đã sử dụng','number']]},
+ orders:{t:'Lệnh sản xuất',cols:[['so','Số lệnh'],['date','Ngày ban hành','date'],['area','Khu vực'],['type','Loại','select',['Sửa chữa','Thay thế','Bảo trì']],['content','Nội dung lệnh'],['by','Người thực hiện']]},
+ stock:{t:'Vật tư theo tháng',cols:[['month','Tháng','month'],['group','Mảng','select',GROUPS],['name','Tên vật tư'],['stock','Tồn kho','number'],['incoming','Sắp nhập','number'],['used','Đã sử dụng','number']]}
+};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let DB=null;try{DB=JSON.parse(localStorage.getItem('itdb')||'null')}catch(e){}
+DB=DB||JSON.parse(JSON.stringify(SEED));
+DB.tasks=DB.tasks||JSON.parse(JSON.stringify(SEED.tasks));
+['fuelLogs','gpsLogs','gpsParts','orders'].forEach(k=>DB[k]=DB[k]||JSON.parse(JSON.stringify(SEED[k])));
+if(!DB.accV){DB.accounts=DB.accounts.filter(a=>a.pass!=='Qn@2026#a'&&a.pass!=='Kho@8899');let n=DB.accounts.reduce((m,x)=>Math.max(m,x.id),0);ACC.forEach(a=>{if(!DB.accounts.some(x=>x.area===a[0]))DB.accounts.push({id:++n,area:a[0],count:a[1],device:'',ip:'',user:'',pass:'',history:[]})});DB.accV=1;try{localStorage.setItem('itdb',JSON.stringify(DB))}catch(e){}}
+if(DB.cameras.some(x=>x.count===undefined)||DB.cameras.every(x=>/^SN-NVR-000\d$/.test(x.sn||'')))DB.cameras=JSON.parse(JSON.stringify(SEED.cameras));
+const save=()=>cloudSave();
+let tab='task',sub='cameras',shown={},q='';
+const $=s=>document.querySelector(s);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),1800)};
+const badge=s=>{const c={'Hoạt động':'#16a34a','Lỗi':'#e11d48','Bảo trì':'#f59e0b'}[s];return c?`<span class="bd" style="background:${c}22;color:${c}">${esc(s)}</span>`:esc(s)};
+const nextId=a=>a.reduce((m,x)=>Math.max(m,x.id),0)+1;
+function exportData(){const t=JSON.stringify({...DB,fmeta:undefined});showModal(`<h3 class="font-bold text-lg mb-2">Sao chép dữ liệu</h3><p class="text-xs mb-2" style="color:var(--mut)">Chọn tất cả (Ctrl+A), sao chép (Ctrl+C), rồi dán vào "Nhập dữ liệu cũ" trên trang mới. Dữ liệu có chứa mật khẩu, đừng gửi cho ai.</p><textarea id="exp" class="inp" rows="8" readonly></textarea><div class="flex justify-end gap-2 mt-3"><button class="btn" onclick="closeModal()">Đóng</button></div>`);const e=$('#exp');e.value=t;e.focus();e.select()}
+function resetData(){if(confirm('Xóa dữ liệu hiện tại và khôi phục dữ liệu mẫu?')){DB=JSON.parse(JSON.stringify(SEED));save();render()}}
+
+function render(){
+ $('#nav').innerHTML=TABS.map(t=>`<button class="nav ${tab===t[0]?'on':''}" onclick="tab='${t[0]}';q='';render()"><span>${t[1]}</span>${t[2]}</button>`).join('');
+ const m=$('#main');
+ if(MOD[tab]&&!MOD[tab].subs.includes(sub))sub=MOD[tab].subs[0];if(tab==='rep')sub='stock';if(tab==='cam'&&!['cameras','orders'].includes(sub))sub='cameras';
+ if(tab==='task')m.innerHTML=viewTask();else if(tab==='cam')m.innerHTML=viewCam();else if(tab==='pwd')m.innerHTML=viewPwd();else if(tab==='rep')m.innerHTML=viewRep();else m.innerHTML=viewMod(tab);
+}
+const head=(t,s)=>`<div class="mb-5"><h1 class="text-2xl font-bold">${t}</h1><p class="text-sm" style="color:var(--mut)">${s}</p></div>`;
+
+/* ===== TAB 1 ===== */
+function viewCam(){if(sub==='orders')return viewOrders();
+ const subs=camSubs();
+ const c=CFG[sub],rows=DB[sub].filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
+ const th=c.cols.map(x=>`<th>${x[1]}</th>`).join('')+(sub==='cameras'?'<th>Đang hoạt động</th>':'')+'<th></th>';
+ const tr=rows.map(r=>`<tr style="${sub==='cameras'&&nBad(r.bad)?'box-shadow:inset 4px 0 0 #e11d48':''}">${c.cols.map(x=>`<td>${x[0]==='status'?badge(r[x[0]]):x[0]==='bad'?badIn(r):x[0]==='area'&&sub==='cameras'?`<b>${esc(r.area)}</b>`:x[0]==='count'?`<b>${esc(r.count)}</b>`:esc(r[x[0]])}</td>`).join('')}${sub==='cameras'?`<td><b style="color:#16a34a">${Number(r.count||0)-nBad(r.bad)}</b>/${r.count}</td>`:''}<td class="whitespace-nowrap text-right"><button class="btn" onclick="openForm(${r.id})">Sửa</button> <button class="btn" style="color:#e11d48" onclick="del('${sub}',${r.id})">Xóa</button></td></tr>`).join('')||`<tr><td colspan="9" style="color:var(--mut)">Chưa có dữ liệu</td></tr>`;
+ const tot=DB.cameras.reduce((a,x)=>a+Number(x.count||0),0),bad=DB.cameras.reduce((a,x)=>a+nBad(x.bad),0),ok=tot-bad;
+ const stat=(l,v,c)=>`<div class="card p-4"><div class="text-xs" style="color:var(--mut)">${l}</div><div class="text-2xl font-bold" style="color:${c}">${v}</div></div>`;
+ return head('Hệ thống Camera công ty','Camera theo khu vực · nhật ký sửa chữa · vật tư dự phòng')+
+ `<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">${stat('Tổng camera ('+DB.cameras.length+' khu vực)',tot,'#f97316')}${stat('Đang hoạt động',ok,'#16a34a')}${stat('Đang lỗi',bad,'#e11d48')}${stat('Lệnh sản xuất đã lưu',DB.orders.length,'#ec4899')}</div>
+ <div class="flex flex-wrap gap-2 mb-3">${subs}</div>
+ <div class="card p-4"><div class="flex flex-wrap gap-2 justify-between mb-3"><input class="inp" style="max-width:260px" placeholder="🔍 Tìm kiếm..." value="${esc(q)}" oninput="q=this.value;keep()"><button class="btn pri" onclick="openForm()">+ Thêm</button></div>
+ <div class="overflow-x-auto"><table class="w-full"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div></div>`;
+}
+const nBad=s=>new Set(String(s||'').match(/\d+/g)||[]).size;
+const badCell=r=>{const n=nBad(r.bad);return n?`<span class="bd" style="background:#e11d4822;color:#e11d48">${n} cam</span> <span class="text-xs" style="color:var(--mut)">${esc(r.bad)}</span>`:'<span style="color:var(--mut)">—</span>'};
+const badIn=r=>{const n=nBad(r.bad);return `<div class="flex items-center gap-2"><input class="inp" style="min-width:190px" value="${esc(r.bad)}" placeholder="VD: Camera 4,7,8" onchange="setBad(${r.id},this.value)" onkeydown="if(event.key==='Enter')this.blur()">${n?`<span class="bd" style="background:var(--redbg);color:var(--red);white-space:nowrap">${n} cam</span>`:''}</div>`};
+function setBad(id,v){DB.cameras.find(x=>x.id===id).bad=v.trim();save();render()}
+function keep(){const p=$('#main input');const pos=p.selectionStart;render();const n=$('#main input');n.focus();n.setSelectionRange(pos,pos)}
+function del(k,id){if(confirm('Xóa mục này?')){DB[k]=DB[k].filter(x=>x.id!==id);save();render();toast('Đã xóa')}}
+function field(x,v){const [k,l,t,o]=x;const id='f_'+k;
+ if(t==='select')return `<label class="block mb-3 text-sm">${l}<select id="${id}" class="inp mt-1">${o.map(s=>`<option ${s===v?'selected':''}>${s}</option>`).join('')}</select></label>`;
+ return `<label class="block mb-3 text-sm">${l}${k==='bad'?' <span class="text-xs" style="color:var(--mut)">(VD: Camera 4,7,8,12)</span>':''}<input id="${id}" type="${t||'text'}" class="inp mt-1" value="${esc(v)}"></label>`}
+function showModal(h){const m=$('#modal');m.innerHTML=`<div class="card p-5 w-full max-w-md max-h-full overflow-auto">${h}</div>`;m.classList.remove('hidden');m.classList.add('flex')}
+function closeModal(){const m=$('#modal');m.classList.add('hidden');m.classList.remove('flex')}
+function openForm(id){
+ const c=CFG[sub],r=id?DB[sub].find(x=>x.id===id):{};
+ showModal(`<h3 class="font-bold text-lg mb-4">${id?'Sửa':'Thêm'} · ${c.t}</h3>${c.cols.map(x=>field(x,r[x[0]]??(x[3]?x[3][0]:x[2]==='date'?new Date().toISOString().slice(0,10):x[2]==='month'?new Date().toISOString().slice(0,7):''))).join('')}
+ <div class="flex justify-end gap-2 mt-2"><button class="btn" onclick="closeModal()">Hủy</button><button class="btn pri" onclick="saveForm(${id||0})">Lưu</button></div>`);
+}
+function saveForm(id){
+ const c=CFG[sub],o={};c.cols.forEach(x=>{const v=$('#f_'+x[0]).value;o[x[0]]=x[2]==='number'?Number(v)||0:v});
+ if(id)Object.assign(DB[sub].find(x=>x.id===id),o);else DB[sub].push({id:nextId(DB[sub]),...o});
+ save();closeModal();render();toast('Đã lưu')}
+
+/* ===== TAB 2 ===== */
+function viewPwd(){
+ const rows=DB.accounts.filter(r=>JSON.stringify([r.area,r.device,r.ip,r.user]).toLowerCase().includes(q.toLowerCase()));
+ const tr=rows.map(r=>`<tr><td><b>${esc(r.area)}</b></td><td>${esc(r.count)}</td><td>${esc(r.device)}</td><td><code>${esc(r.ip)}</code></td><td>${esc(r.user)}</td>
+ <td class="whitespace-nowrap"><code>${r.pass?(shown[r.id]?esc(r.pass):'••••••••'):'<span style="color:var(--mut)">Chưa nhập</span>'}</code></td>
+ <td class="whitespace-nowrap">${oldCell(r)}</td>${ROLES.map(x=>`<td class="whitespace-nowrap">${roleCell(r,x[0])}</td>`).join('')}<td class="whitespace-nowrap text-right"><button class="btn" onclick="toggleShow(${r.id})">${shown[r.id]?'🙈 Ẩn':'👁 Xem'}</button> <button class="btn" onclick="copyPw(${r.id})">📋 Chép</button> <button class="btn" onclick="openAcc(${r.id})">Sửa</button> <button class="btn" style="color:#e11d48" onclick="delAcc(${r.id})">Xóa</button></td></tr>`).join('')||`<tr><td colspan="6" style="color:var(--mut)">Chưa có tài khoản</td></tr>`;
+ return head('Mật khẩu & Tài khoản Camera','IP · NVR · đầu ghi theo khu vực · lưu lịch sử mật khẩu khi đổi')+
+ `<div class="card p-4"><div class="flex flex-wrap gap-2 justify-between mb-3"><input class="inp" style="max-width:260px" placeholder="🔍 Tìm khu vực, IP..." value="${esc(q)}" oninput="q=this.value;keep()"><div class="flex gap-2">${unlocked()?'<button class="btn" onclick="lockNow()">🔒 Khóa lại</button>':''}<button class="btn" onclick="secMenu()">⚙ Bảo mật</button><button class="btn pri" onclick="openAcc()">+ Thêm tài khoản</button></div></div>
+ <div class="overflow-x-auto"><table class="w-full"><thead><tr><th>Khu vực</th><th>Số camera</th><th>Thiết bị / NVR</th><th>IP</th><th>Tài khoản</th><th>Mật khẩu</th><th>Mật khẩu cũ</th><th>Giám đốc (TK / MK)</th><th>Vận hành (TK / MK)</th><th>Giám sát (TK / MK)</th><th></th></tr></thead><tbody>${tr}</tbody></table></div>
+ <p class="text-xs mt-3" style="color:var(--mut)">🔒 Mật khẩu xem chỉ là khóa màn hình, chưa mã hóa dữ liệu. Bản máy chủ sẽ có đăng nhập và mã hóa thật.</p></div>`;
+}
+const oldCell=r=>{const h=(r.history||[])[0];if(!h)return '<span style="color:var(--mut)">—</span>';return `<code>${shown[r.id]?esc(h.pass):'••••••••'}</code> <span class="text-xs" style="color:var(--mut)">${esc(h.date)}${r.history.length>1?' · +'+(r.history.length-1):''}</span>`};
+const ROLES=[['gd','Giám đốc'],['vh','Vận hành'],['gs','Giám sát']];
+const roleCell=(r,k)=>{const u=r[k+'User'],p=r[k+'Pass'];if(!u&&!p)return '<span style="color:var(--mut)">—</span>';return `<div>${u?esc(u):'<span style="color:var(--mut)">Chưa nhập</span>'}</div><div><code style="cursor:pointer" title="Bấm để sao chép" onclick="copyPw(${r.id},'${k}Pass')">${p?(shown[r.id]?esc(p):'••••••••'):'—'}</code></div>`};
+const copyPw=(id,f)=>needPin(()=>copyPw0(id,f));
+function copyPw0(id,f){const p=DB.accounts.find(x=>x.id===id)[f||'pass'];if(!p)return toast('Chưa có mật khẩu');
+ const ok=()=>toast('Đã sao chép mật khẩu');
+ const fb=()=>{const t=document.createElement('textarea');t.value=p;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok()}catch(e){toast('Không sao chép được')}t.remove()};
+ try{navigator.clipboard.writeText(p).then(ok,fb)}catch(e){fb()}}
+function delAcc(id){if(confirm('Xóa tài khoản này?')){DB.accounts=DB.accounts.filter(x=>x.id!==id);save();render()}}
+function openAcc(id){if(id&&!unlocked())return askPin(()=>openAcc(id));
+ const r=id?DB.accounts.find(x=>x.id===id):{area:'',device:'',ip:'',user:'admin',pass:'',history:[]};
+ const hist=(r.history||[]).map(h=>`<div class="flex justify-between text-sm"><code>${esc(h.pass)}</code><span style="color:var(--mut)">${esc(h.date)}</span></div>`).join('')||'<div class="text-sm" style="color:var(--mut)">Chưa có mật khẩu cũ</div>';
+ showModal(`<h3 class="font-bold text-lg mb-4">${id?'Sửa':'Thêm'} tài khoản</h3>
+ ${field(['area','Khu vực'],r.area)}${field(['count','Số lượng camera','number'],r.count)}${field(['device','Thiết bị / NVR / Đầu ghi'],r.device)}${field(['ip','Địa chỉ IP'],r.ip)}${field(['user','Tài khoản'],r.user)}
+ ${id?`<div class="rounded-lg p-3 mb-3" style="background:#f9731622;border:1px solid #f9731666"><div class="text-xs font-bold mb-1" style="color:#f97316">MẬT KHẨU GẦN NHẤT (để đối chiếu)</div>${hist}<div class="text-xs mt-2" style="color:var(--mut)">Mật khẩu hiện tại: <code>${esc(r.pass)}</code></div></div>`:''}
+ ${field(['pass',id?'Mật khẩu mới':'Mật khẩu'],id?'':r.pass)}
+ ${ROLES.map(x=>`<div class="mt-3 mb-1 text-xs font-bold" style="color:#f97316">TÀI KHOẢN ${x[1].toUpperCase()}</div>${field([x[0]+'User','Tài khoản'],r[x[0]+'User'])}${field([x[0]+'Pass','Mật khẩu'],r[x[0]+'Pass'])}`).join('')}
+ <div class="flex justify-end gap-2 mt-2"><button class="btn" onclick="closeModal()">Hủy</button><button class="btn pri" onclick="saveAcc(${id||0})">Lưu</button></div>`);
+}
+function saveAcc(id){
+ const g=k=>$('#f_'+k).value.trim(),o={area:g('area'),count:Number(g('count'))||0,device:g('device'),ip:g('ip'),user:g('user')},np=$('#f_pass').value;ROLES.forEach(x=>{o[x[0]+'User']=g(x[0]+'User');o[x[0]+'Pass']=$('#f_'+x[0]+'Pass').value});
+ if(id){const r=DB.accounts.find(x=>x.id===id);Object.assign(r,o);
+  if(np&&np!==r.pass){if(r.pass)r.history=[{pass:r.pass,date:new Date().toISOString().slice(0,10)},...(r.history||[])].slice(0,5);r.pass=np}}
+ else{DB.accounts.push({id:nextId(DB.accounts),...o,pass:np,history:[]})}
+ save();closeModal();render();toast('Đã lưu')}
+
+/* ===== CÔNG VIỆC HÀNG NGÀY ===== */
+let tf='open';
+const p2=n=>String(n).padStart(2,'0');
+const fmtD=s=>{if(!s)return'Chưa đặt hạn';const d=new Date(s);return `${p2(d.getHours())}:${p2(d.getMinutes())} ${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`};
+function left(s){const ms=new Date(s)-Date.now(),a=Math.abs(ms),m=Math.round(a/6e4),h=Math.floor(a/36e5),d=Math.floor(a/864e5);
+ const t=m<60?m+' phút':h<24?h+' giờ':d+' ngày';
+ return ms<0?['Quá hạn '+t,'#e11d48']:['Còn '+t,h<24?'#f97316':'#16a34a']}
+function viewTask(){
+ const T=DB.tasks,now=Date.now(),open=T.filter(x=>!x.done);
+ const od=open.filter(x=>x.due&&new Date(x.due)<now).length,s24=open.filter(x=>x.due&&new Date(x.due)>=now&&new Date(x.due)-now<864e5).length;
+ const rows=T.filter(x=>tf==='all'||(tf==='open'?!x.done:x.done)).filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>(a.done-b.done)||(a.due||'9').localeCompare(b.due||'9'));
+ const li=rows.map(r=>{const l=!r.done&&r.due?left(r.due):null;
+  return `<div class="card p-3 flex flex-wrap items-center gap-3 mb-2" style="${r.done?'opacity:.55':''}">
+  <input type="checkbox" ${r.done?'checked':''} onchange="toggleTask(${r.id})" style="width:20px;height:20px;accent-color:#f43f5e">
+  <div class="flex-1" style="min-width:180px"><div class="font-semibold ${r.done?'line-through':''}">${esc(r.title)}</div>${r.note?`<div class="text-xs" style="color:var(--mut)">${esc(r.note)}</div>`:''}</div>
+  <div class="text-sm"><div>⏰ ${fmtD(r.due)}</div>${l?`<span class="bd" style="background:${l[1]}22;color:${l[1]}">${l[0]}</span>`:''}</div>
+  <div class="whitespace-nowrap"><button class="btn" onclick="snooze(${r.id})">+1 ngày</button> <button class="btn" onclick="openTask(${r.id})">Sửa</button> <button class="btn" style="color:#e11d48" onclick="del('tasks',${r.id})">Xóa</button></div></div>`}).join('')||'<div class="card p-5" style="color:var(--mut)">Không có công việc</div>';
+ const stat=(l,v,c)=>`<div class="card p-4"><div class="text-xs" style="color:var(--mut)">${l}</div><div class="text-2xl font-bold" style="color:${c}">${v}</div></div>`;
+ const fb=[['open','Chưa xong'],['done','Đã xong'],['all','Tất cả']].map(x=>`<button class="btn ${tf===x[0]?'pri':''}" onclick="tf='${x[0]}';render()">${x[1]}</button>`).join('');
+ return head('Công việc hàng ngày','Việc phát sinh lặt vặt · có hạn thời gian · hạn sửa được')+
+ `<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">${stat('Quá hạn',od,'#e11d48')}${stat('Trong 24 giờ tới',s24,'#f97316')}${stat('Chưa xong',open.length,'#ec4899')}${stat('Đã xong',T.length-open.length,'#16a34a')}</div>
+ <div class="flex flex-wrap gap-2 justify-between mb-3"><input class="inp" style="max-width:260px" placeholder="🔍 Tìm công việc..." value="${esc(q)}" oninput="q=this.value;keep()"><div class="flex gap-2">${fb}<button class="btn pri" onclick="openTask()">+ Thêm việc</button></div></div>${li}`;
+}
+function openTask(id){const r=id?DB.tasks.find(x=>x.id===id):{title:'',due:'',note:''};
+ showModal(`<h3 class="font-bold text-lg mb-4">${id?'Sửa':'Thêm'} công việc</h3>${field(['title','Công việc'],r.title)}${field(['due','Hạn thời gian','datetime-local'],r.due)}${field(['note','Ghi chú'],r.note)}
+ <div class="flex justify-end gap-2 mt-2"><button class="btn" onclick="closeModal()">Hủy</button><button class="btn pri" onclick="saveTask(${id||0})">Lưu</button></div>`)}
+function saveTask(id){const o={title:$('#f_title').value.trim(),due:$('#f_due').value,note:$('#f_note').value.trim()};if(!o.title)return toast('Nhập tên công việc');
+ if(id)Object.assign(DB.tasks.find(x=>x.id===id),o);else DB.tasks.push({id:nextId(DB.tasks),done:false,...o});save();closeModal();render();toast('Đã lưu')}
+function toggleTask(id){const r=DB.tasks.find(x=>x.id===id);r.done=!r.done;save();render()}
+function snooze(id){const r=DB.tasks.find(x=>x.id===id),d=new Date(r.due||Date.now());d.setDate(d.getDate()+1);r.due=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;save();render();toast('Đã dời hạn +1 ngày')}
+setInterval(()=>{if(tab==='task'&&$('#modal').classList.contains('hidden')&&document.activeElement.tagName!=='INPUT')render()},60000);
+
+/* ===== LỆNH SẢN XUẤT (Tab Camera) ===== */
+const camSubs=()=>[['cameras','Camera theo khu vực'],['orders','Lệnh sản xuất']].map(s=>`<button class="btn ${sub===s[0]?'pri':''}" onclick="sub='${s[0]}';q='';render()">${s[1]}</button>`).join('');
+function viewOrders(){
+ const c=CFG.orders,rows=DB.orders.filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ const tr=rows.map(r=>`<tr>${c.cols.map(x=>`<td>${x[0]==='so'?`<b>${esc(r.so)}</b>`:esc(r[x[0]])}</td>`).join('')}<td class="whitespace-nowrap">${r.file?`<button class="btn" onclick="viewFile(${r.id})">📄 Xem</button> <span class="text-xs" style="color:var(--mut)">${esc(r.file)}</span>`:`<button class="btn" onclick="pickFile(${r.id})">📎 Tải lệnh lên</button>`}</td><td>${bbCell(r)}</td><td class="whitespace-nowrap text-right">${r.file?`<button class="btn" onclick="pickFile(${r.id})">Đổi tệp</button> `:''}<button class="btn" onclick="openForm(${r.id})">Sửa</button> <button class="btn" style="color:var(--red)" onclick="delOrder(${r.id})">Xóa</button></td></tr>`).join('')||`<tr><td colspan="9" style="color:var(--mut)">Chưa có lệnh sản xuất</td></tr>`;
+ return head('Hệ thống Camera công ty','Camera theo khu vực · lưu lệnh sản xuất sửa chữa, thay thế camera')+`<div class="flex flex-wrap gap-2 mb-3">${camSubs()}</div><div class="card p-4"><div class="flex flex-wrap gap-2 justify-between mb-3"><input class="inp" style="max-width:260px" placeholder="🔍 Tìm số lệnh, khu vực..." value="${esc(q)}" oninput="q=this.value;keep()"><button class="btn pri" onclick="openForm()">+ Thêm lệnh</button></div><div class="overflow-x-auto"><table class="w-full"><thead><tr>${c.cols.map(x=>`<th>${x[1]}</th>`).join('')}<th>Tệp lệnh</th><th>Biên bản hiện trường</th><th></th></tr></thead><tbody>${tr}</tbody></table></div><p class="text-xs mt-3" style="color:var(--mut)">Điền thông tin lệnh bằng tay, rồi bấm "Tải lệnh lên" để đính kèm file (PDF, ảnh, Word, Excel; tối đa 4 MB). Tệp lưu trong trình duyệt này.</p></div>`}
+function pickFile(id){const i=document.createElement('input');i.type='file';i.accept='.pdf,image/*,.doc,.docx,.xls,.xlsx';
+ i.onchange=()=>{const f=i.files[0];if(!f)return;if(f.size>4e6)return toast('Tệp quá lớn (tối đa 4 MB)');const rd=new FileReader();
+  rd.onload=async()=>{try{await fput('order:'+id,{name:f.name,type:f.type,data:rd.result});DB.orders.find(x=>x.id===id).file=f.name;save();render();toast('Đã lưu tệp lệnh')}catch(e){toast('Không lưu được tệp trong trình duyệt này')}};rd.readAsDataURL(f)};i.click()}
+async function viewFile(id,key){try{const f=await fget(key||'order:'+id);if(!f)return toast('Không tìm thấy tệp');
+ const b=f.type.startsWith('image/')?`<img src="${f.data}" style="max-width:100%">`:f.type==='application/pdf'?`<iframe src="${f.data}" style="width:100%;height:70vh;border:0"></iframe>`:`<p class="text-sm" style="color:var(--mut)">Chưa xem trước được định dạng này (Word/Excel). Tệp vẫn được lưu; bản máy chủ sẽ mở/tải được.</p>`;
+ showModal(`<div class="flex justify-between items-center mb-3"><b>${esc(f.name)}</b><button class="btn" onclick="closeModal()">Đóng</button></div>${b}`);document.querySelector('#modal>div').style.maxWidth='900px'}catch(e){toast('Không đọc được tệp')}}
+const bbCell=r=>{const l=(r.bbs||[]).map(b=>`<div class="flex items-center gap-1 mb-1"><button class="btn" onclick="viewFile(${r.id},'bb:${r.id}:${b.k}')">📄 Xem</button><span class="text-xs" style="color:var(--mut);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(b.name)}">${esc(b.name)}</span><button class="btn" style="color:var(--red)" onclick="delBB(${r.id},${b.k})">✕</button></div>`).join('');return `${l}<button class="btn" onclick="pickBB(${r.id})">+ Thêm biên bản</button>`};
+function pickBB(id){const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='.pdf,image/*,.doc,.docx,.xls,.xlsx';
+ i.onchange=()=>{const fs=[...i.files];if(!fs.length)return;if(fs.some(f=>f.size>4e6))return toast('Có tệp quá lớn (tối đa 4 MB mỗi tệp)');
+  Promise.all(fs.map((f,n)=>new Promise((ok,no)=>{const rd=new FileReader();rd.onload=async()=>{try{const k=Date.now()+n;await fput('bb:'+id+':'+k,{name:f.name,type:f.type,data:rd.result});ok({k,name:f.name})}catch(e){no(e)}};rd.onerror=no;rd.readAsDataURL(f)}))).then(a=>{const r=DB.orders.find(x=>x.id===id);r.bbs=[...(r.bbs||[]),...a];save();render();toast('Đã lưu biên bản hiện trường')}).catch(()=>toast('Không lưu được tệp trong trình duyệt này'))};i.click()}
+async function delBB(id,k){if(confirm('Xóa biên bản này?')){const r=DB.orders.find(x=>x.id===id);r.bbs=(r.bbs||[]).filter(b=>b.k!==k);save();try{await fdel('bb:'+id+':'+k)}catch(e){}render()}}
+async function delOrder(id){if(confirm('Xóa lệnh sản xuất này cùng biên bản đính kèm?')){const o=DB.orders.find(x=>x.id===id)||{};DB.orders=DB.orders.filter(x=>x.id!==id);save();try{await fdel('order:'+id);for(const b of o.bbs||[])await fdel('bb:'+id+':'+b.k)}catch(e){}render();toast('Đã xóa')}}
+
+/* ===== KHÓA XEM MẬT KHẨU ===== */
+let unlockUntil=0;
+const unlocked=()=>Date.now()<unlockUntil;
+const H=async s=>{try{return[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('it|'+s)))].map(b=>b.toString(16).padStart(2,'0')).join('')}catch(e){return'p:'+s}};
+function needPin(fn){if(unlocked()){fn();render()}else askPin(fn)}
+function toggleShow(id){if(shown[id]){shown[id]=false;render()}else needPin(()=>{shown[id]=true})}
+function lockNow(){unlockUntil=0;shown={};render()}
+function askPin(fn){window._pf=fn;showModal(`<h3 class="font-bold text-lg mb-1">🔒 Nhập mật khẩu để xem</h3><p class="text-xs mb-3" style="color:var(--mut)">Tự khóa lại sau 5 phút.</p><input id="pin" type="password" class="inp" placeholder="Mật khẩu xem" autocomplete="off"><div id="perr" class="text-xs mt-2" style="color:var(--red)"></div><div class="flex flex-wrap justify-between items-center gap-2 mt-3"><button class="btn" onclick="secMenu()">⚙ Đổi / khôi phục</button><div class="flex gap-2"><button class="btn" onclick="closeModal()">Hủy</button><button class="btn pri" onclick="chkPin()">Xem</button></div></div>`);const e=$('#pin');e.focus();e.onkeydown=ev=>{if(ev.key==='Enter')chkPin()}}
+async function chkPin(){const h=await H($('#pin').value),w=(DB.sec&&DB.sec.pin)||await H('123456');
+ if(h===w){unlockUntil=Date.now()+3e5;closeModal();const f=window._pf;window._pf=null;if(f)f();render()}else{$('#perr').textContent='Sai mật khẩu';$('#pin').value='';$('#pin').focus()}}
+function secMenu(mode){mode=mode||'chg';
+ const M={chg:['Đổi mật khẩu xem',['Mật khẩu xem hiện tại','Mật khẩu xem mới','Nhập lại mật khẩu mới']],rec:['Khôi phục mật khẩu xem (quyền admin)',['Mã admin','Mật khẩu xem mới','Nhập lại mật khẩu mới']],adm:['Đổi mã admin',['Mã admin hiện tại','Mã admin mới','Nhập lại mã admin mới']]};
+ const nm={chg:'Đổi mật khẩu',rec:'Khôi phục (admin)',adm:'Đổi mã admin'};
+ const t=Object.keys(M).map(k=>`<button class="btn ${k===mode?'pri':''}" onclick="secMenu('${k}')">${nm[k]}</button>`).join(' ');
+ showModal(`<h3 class="font-bold text-lg mb-3">⚙ Bảo mật xem mật khẩu</h3><div class="flex flex-wrap gap-2 mb-3">${t}</div><div class="font-semibold text-sm mb-2">${M[mode][0]}</div>${M[mode][1].map((l,i)=>`<label class="block mb-3 text-sm">${l}<input id="s${i}" type="password" class="inp mt-1" autocomplete="off"></label>`).join('')}<div id="perr" class="text-xs mb-2" style="color:var(--red)"></div><div class="flex justify-end gap-2"><button class="btn" onclick="closeModal()">Đóng</button><button class="btn pri" onclick="saveSec('${mode}')">Lưu</button></div>`);$('#s0').focus()}
+async function saveSec(mode){const a=$('#s0').value,b=$('#s1').value,c=$('#s2').value,err=m=>{$('#perr').textContent=m};
+ if(b.length<4)return err('Mật khẩu mới tối thiểu 4 ký tự');if(b!==c)return err('Nhập lại chưa khớp');
+ const S=DB.sec=DB.sec||{},ha=await H(a),okPin=ha===(S.pin||await H('123456')),okAdm=ha===(S.admin||await H('admin123'));
+ if(mode==='chg'){if(!okPin)return err('Sai mật khẩu xem hiện tại');S.pin=await H(b)}
+ else if(mode==='rec'){if(!okAdm)return err('Sai mã admin');S.pin=await H(b)}
+ else{if(!okAdm)return err('Sai mã admin hiện tại');S.admin=await H(b)}
+ save();closeModal();toast('Đã cập nhật')}
+setInterval(()=>{if(unlockUntil&&!unlocked()){unlockUntil=0;shown={};if($('#modal').classList.contains('hidden'))render()}},15000);
+
+/* ===== TAB 3, 4, 5 ===== */
+const MOD={fuel:{h:'Hệ thống Cấp phát Nhiên liệu Tự động',s:'Trạng thái trụ · nhật ký bảo trì · vật tư, linh kiện thay thế',n:'Tổng trụ / hệ thống',subs:['fuel','fuelLogs','fuelParts']},gps:{h:'Hệ thống GPS & Tín hiệu',s:'GPS ô tô · GPS tuần đường · tín hiệu đuôi tàu · SIM · lịch sử thay thế',n:'Tổng thiết bị',subs:['gps','gpsLogs','gpsParts']}};
+let gf='',mf='';
+const sc=(l,v,c)=>`<div class="card p-4"><div class="text-xs" style="color:var(--mut)">${l}</div><div class="text-2xl font-bold" style="color:${c}">${v}</div></div>`;
+const sum=(a,f)=>a.reduce((t,x)=>t+Number(x[f]||0),0);
+const mini=(h,b)=>`<div class="overflow-x-auto"><table class="w-full"><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${b}</tbody></table></div>`;
+function gtable(key,filt){
+ const c=CFG[key],rows=DB[key].filter(r=>(!filt||filt(r))&&JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
+ const tr=rows.map(r=>`<tr>${c.cols.map(x=>`<td>${x[0]==='status'?badge(r[x[0]]):esc(r[x[0]])}</td>`).join('')}<td class="whitespace-nowrap text-right"><button class="btn" onclick="openForm(${r.id})">Sửa</button> <button class="btn" style="color:var(--red)" onclick="del('${key}',${r.id})">Xóa</button></td></tr>`).join('')||`<tr><td colspan="9" style="color:var(--mut)">Chưa có dữ liệu</td></tr>`;
+ return `<div class="card p-4"><div class="flex flex-wrap gap-2 justify-between mb-3"><input class="inp" style="max-width:260px" placeholder="🔍 Tìm kiếm..." value="${esc(q)}" oninput="q=this.value;keep()"><button class="btn pri" onclick="openForm()">+ Thêm</button></div><div class="overflow-x-auto"><table class="w-full"><thead><tr>${c.cols.map(x=>`<th>${x[1]}</th>`).join('')}<th></th></tr></thead><tbody>${tr}</tbody></table></div></div>`}
+function viewMod(k){
+ const M=MOD[k],d=DB[M.subs[0]],n=s=>d.filter(x=>x.status===s).length;
+ const subs=M.subs.map(s=>`<button class="btn ${sub===s?'pri':''}" onclick="sub='${s}';q='';render()">${CFG[s].t}</button>`).join('');
+ let chips='',filt=null;
+ if(sub==='gps'){chips=['',...GRP].map(g=>`<button class="btn ${gf===g?'pri':''}" onclick="gf='${g}';render()">${g||'Tất cả nhóm'}</button>`).join('');filt=r=>!gf||r.group===gf}
+ return head(M.h,M.s)+`<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">${sc(M.n,d.length,'#f97316')}${sc('Hoạt động',n('Hoạt động'),'#16a34a')}${sc('Lỗi',n('Lỗi'),'#e11d48')}${sc('Bảo trì',n('Bảo trì'),'#f59e0b')}</div><div class="flex flex-wrap gap-2 mb-3">${subs}</div>${chips?`<div class="flex flex-wrap gap-2 mb-3">${chips}</div>`:''}${gtable(sub,filt)}`}
+function viewRep(){
+ const G=[['Nhiên liệu',DB.fuelParts,'qty'],['GPS & Tín hiệu',DB.gpsParts,'qty']];
+ const ms=[...new Set(DB.stock.map(x=>x.month).filter(Boolean))].sort().reverse(),S=DB.stock.filter(x=>!mf||x.month===mf);
+ const cur=G.map(g=>`<tr><td><b>${g[0]}</b></td><td>${g[1].length}</td><td>${sum(g[1],g[2])}</td><td>${sum(g[1],'used')}</td></tr>`).join('');
+ const mon=GROUPS.map(g=>{const s=S.filter(x=>x.group===g);return `<tr><td><b>${g}</b></td><td>${sum(s,'stock')}</td><td>${sum(s,'incoming')}</td><td>${sum(s,'used')}</td></tr>`}).join('')+`<tr><td><b>TỔNG</b></td><td><b>${sum(S,'stock')}</b></td><td><b>${sum(S,'incoming')}</b></td><td><b>${sum(S,'used')}</b></td></tr>`;
+ const sel=`<select class="inp" style="max-width:180px" onchange="mf=this.value;render()"><option value="">Tất cả tháng</option>${ms.map(m=>`<option ${m===mf?'selected':''}>${m}</option>`).join('')}</select>`;
+ return head('Báo cáo & Tổng hợp vật tư','Tồn kho · sắp nhập · đã sử dụng hàng tháng của Camera, Nhiên liệu, GPS')+
+ `<div class="card p-4 mb-4"><div class="font-bold mb-2">Tồn kho hiện tại <span class="text-xs" style="color:var(--mut)">(tự tổng hợp vật tư ở Tab Nhiên liệu và GPS; vật tư Camera nhập ở bảng theo tháng bên dưới)</span></div>${mini(['Mảng','Số loại vật tư','Tồn kho','Đã sử dụng'],cur)}</div>
+ <div class="card p-4 mb-4"><div class="flex flex-wrap gap-2 justify-between items-center mb-2"><div class="font-bold">Tổng hợp theo tháng</div>${sel}</div>${mini(['Mảng','Tồn kho','Sắp nhập','Đã sử dụng'],mon)}</div>
+ ${gtable('stock',r=>!mf||r.month===mf)}`}
+/* ===== (cũ) ===== */
+function viewLater(){
+ const map={fuel:['Cấp phát nhiên liệu tự động',{fuel:DB.fuel,fuelParts:DB.fuelParts}],gps:['GPS & Tín hiệu',{gps:DB.gps}],rep:['Báo cáo & Tổng hợp vật tư',{stock:DB.stock}]};
+ const [t,d]=map[tab];
+ return head(t,'Sẽ lập trình hoàn chỉnh ở Đoạn 2')+`<div class="card p-5"><div class="grad inline-block text-white text-xs font-bold px-3 py-1 rounded-full mb-3">ĐOẠN 2 · ĐANG CHỜ</div><p class="text-sm mb-3" style="color:var(--mut)">Cấu trúc dữ liệu mẫu đã dựng sẵn cho tab này:</p><pre class="text-xs overflow-auto p-3 rounded-lg" style="border:1px solid var(--line)">${esc(JSON.stringify(d,null,2))}</pre></div>`;
+}
+/* ===== ĐÁM MÂY (Supabase) ===== */
+const SBU='https://akyfogoaekznbpoaluzt.supabase.co',SBK='sb_publishable_KuBjbYZNUhkKbIVnMp9uXw_emAbIqTf';
+let TOK=null,RT=null,UID=null,KEY=null,SALT='',ROW={},LAST={},busy=null,again=false;
+const setCloud=t=>{const e=$('#cloud');if(e)e.textContent=t};
+const b64=a=>{let s='';new Uint8Array(a).forEach(c=>s+=String.fromCharCode(c));return btoa(s)};
+const unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function sb(m,p,b,h){const go=()=>fetch(SBU+p,{method:m,headers:{apikey:SBK,...(TOK?{Authorization:'Bearer '+TOK}:{}),...(b&&!(b instanceof Blob)?{'Content-Type':'application/json'}:{}),...(h||{})},body:b instanceof Blob?b:b?JSON.stringify(b):undefined});
+ let r=await go();if(r.status===401&&RT){await refresh();r=await go()}return r}
+async function refresh(){const r=await sb('POST','/auth/v1/token?grant_type=refresh_token',{refresh_token:RT});if(r.ok){const j=await r.json();TOK=j.access_token;RT=j.refresh_token}}
+async function signIn(e,p){const r=await sb('POST','/auth/v1/token?grant_type=password',{email:e,password:p});const j=await r.json();if(!r.ok)throw Error('Sai email hoặc mật khẩu đăng nhập');TOK=j.access_token;RT=j.refresh_token;UID=j.user.id}
+async function mkKey(pass,salt){const m=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function enc(o){const iv=crypto.getRandomValues(new Uint8Array(12)),c=await crypto.subtle.encrypt({name:'AES-GCM',iv},KEY,new TextEncoder().encode(JSON.stringify(o)));return{s:SALT,i:b64(iv),c:b64(c)}}
+async function dec(e){const p=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb(e.i)},KEY,unb(e.c));return JSON.parse(new TextDecoder().decode(p))}
+async function loadAll(pass){const r=await sb('GET','/rest/v1/records?select=id,collection,data&limit=1000');if(!r.ok)throw Error('Không đọc được dữ liệu ('+r.status+'). Kiểm tra đã chạy đoạn lệnh tạo bảng chưa.');
+ const rows=await r.json(),D=JSON.parse(JSON.stringify(SEED));
+ for(const x of rows){ROW[x.collection]=x.id;
+  if(x.collection==='accounts'){const e=x.data.enc;try{SALT=e.s;KEY=await mkKey(pass,unb(e.s));D.accounts=await dec(e)}catch(_){throw Error('Sai mã khóa dữ liệu mật khẩu camera')}}
+  else if(x.data&&x.data.v!==undefined)D[x.collection]=x.data.v}
+ if(!ROW.accounts){const s=crypto.getRandomValues(new Uint8Array(16));SALT=b64(s);KEY=await mkKey(pass,s)}
+ D.fmeta=D.fmeta||{};DB=D;LAST={};for(const k in D)if(ROW[k])LAST[k]=JSON.stringify(D[k])}
+async function push(){for(const k of Object.keys(DB)){const s=JSON.stringify(DB[k]);if(LAST[k]===s)continue;
+  const data=k==='accounts'?{enc:await enc(DB[k])}:{v:DB[k]};let r;
+  if(ROW[k])r=await sb('PATCH','/rest/v1/records?id=eq.'+ROW[k],{data});else r=await sb('POST','/rest/v1/records',{collection:k,data},{Prefer:'return=representation'});
+  if(!r.ok)throw Error(r.status+' '+(await r.text()).slice(0,80));
+  if(!ROW[k])ROW[k]=(await r.json())[0].id;LAST[k]=s}
+ setCloud('☁ Đã lưu '+new Date().toLocaleTimeString('vi-VN'))}
+function cloudSave(){if(!TOK)return;setCloud('☁ Đang lưu...');if(busy){again=true;return}
+ busy=push().catch(e=>{setCloud('⚠ Lỗi lưu: '+e.message);toast('Lỗi lưu lên đám mây')}).finally(()=>{busy=null;if(again){again=false;cloudSave()}})}
+async function doLogin(){const e=$('#g_e').value.trim(),p=$('#g_p').value,k=$('#g_k').value,er=$('#g_err');er.textContent='';
+ if(!e||!p||!k){er.textContent='Nhập đủ 3 ô';return}$('#g_btn').disabled=true;$('#g_btn').textContent='Đang đăng nhập...';
+ try{await signIn(e,p);await loadAll(k);try{localStorage.setItem('it_email',e)}catch(_){}$('#gate').remove();render();setCloud('☁ Đã kết nối');cloudSave()}
+ catch(x){er.textContent=x.message||'Lỗi kết nối';$('#g_btn').disabled=false;$('#g_btn').textContent='Đăng nhập'}}
+function logout(){TOK=RT=null;location.reload()}
+const fpath=k=>UID+'/'+k.replace(/[^\w.-]/g,'_');
+const fput=async(k,v)=>{const b=await(await fetch(v.data)).blob();const r=await sb('POST','/storage/v1/object/files/'+fpath(k),b,{'Content-Type':v.type||'application/octet-stream','x-upsert':'true'});if(!r.ok)throw Error('upload '+r.status);DB.fmeta[k]={name:v.name,type:v.type};save()};
+const fget=async k=>{const r=await sb('GET','/storage/v1/object/authenticated/files/'+fpath(k));if(!r.ok)return null;const b=await r.blob(),m=DB.fmeta[k]||{};return{name:m.name||k,type:m.type||b.type,data:URL.createObjectURL(b)}};
+const fdel=async k=>{await sb('DELETE','/storage/v1/object/files/'+fpath(k));delete DB.fmeta[k];save()};
+function openImport(){showModal(`<h3 class="font-bold text-lg mb-2">Nhập dữ liệu cũ</h3><p class="text-xs mb-2" style="color:var(--mut)">Dán nội dung đã sao chép từ trang cũ. Dữ liệu cùng loại sẽ bị thay bằng dữ liệu dán vào.</p><textarea id="imp" class="inp" rows="8"></textarea><div class="flex justify-end gap-2 mt-3"><button class="btn" onclick="closeModal()">Hủy</button><button class="btn pri" onclick="doImport()">Nhập</button></div>`)}
+function doImport(){try{const o=JSON.parse($('#imp').value);if(typeof o!=='object'||Array.isArray(o))throw 0;delete o.fmeta;delete o.sec;Object.assign(DB,o);save();closeModal();render();toast('Đã nhập dữ liệu')}catch(e){toast('Nội dung không hợp lệ')}}
+try{const m=localStorage.getItem('it_email');if(m)$('#g_e').value=m}catch(e){}
+document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&$('#gate'))doLogin()});
+</script></body></html>
